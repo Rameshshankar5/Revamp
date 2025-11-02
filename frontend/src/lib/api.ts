@@ -19,6 +19,13 @@ export async function api(path: string, options: RequestInit = {}) {
     credentials: "omit", // no cookies; keeps CORS simple
   });
 
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+    console.log("[FE] attaching auth", `Bearer ${token.slice(0,20)}...`);
+  } else {
+    console.log("[FE] no token in localStorage");
+  }
+  
   // 204 → no content
   if (res.status === 204) return null;
 

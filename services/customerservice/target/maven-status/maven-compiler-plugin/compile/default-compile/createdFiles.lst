@@ -4,6 +4,7 @@ com\revamp\customer\model\Vehicle.class
 com\revamp\customer\repo\CustomerRepo.class
 com\revamp\customer\repo\VehicleRepo.class
 com\revamp\customer\repo\HistoryRepo.class
+com\revamp\customer\security\DevUserIdAuthFilter.class
 com\revamp\customer\web\VehicleController.class
 com\revamp\customer\web\CustomerController.class
 com\revamp\customer\model\Customer.class
