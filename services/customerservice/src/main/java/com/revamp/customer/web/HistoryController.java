@@ -1,13 +1,14 @@
 package com.revamp.customer.web;
 
 import com.revamp.customer.model.HistoryItem;
+import com.revamp.customer.model.Vehicle;
 import com.revamp.customer.repo.HistoryRepo;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
+import com.revamp.customer.repo.VehicleRepo;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -15,25 +16,37 @@ import java.util.List;
 @RequiredArgsConstructor
 public class HistoryController {
 
-    private final HistoryRepo historyRepo;
+  private final HistoryRepo history;
+  private final VehicleRepo vehicles;
 
-    private String userId(Authentication auth, HttpServletRequest req) {
-        String uid = req.getHeader("X-User-Id");
-        if (uid != null && !uid.isBlank()) return uid;
-        return (auth != null && auth.getPrincipal() != null) ? String.valueOf(auth.getPrincipal()) : null;
+  @GetMapping
+  public ResponseEntity<List<HistoryItem>> listMine() {
+    String uid = CurrentUser.userId();
+    if (uid == null) return ResponseEntity.status(401).build();
+    return ResponseEntity.ok(history.findByCustomerUserId(uid));
+  }
+
+  @PostMapping
+  public ResponseEntity<?> create(@RequestBody HistoryItem body) {
+    String uid = CurrentUser.userId();
+    if (uid == null) return ResponseEntity.status(401).build();
+
+    body.setId(null);
+    body.setCustomerUserId(uid);
+
+    // If a vehicleId is provided, verify ownership
+    if (body.getVehicleId() != null && !body.getVehicleId().isBlank()) {
+      Vehicle v = vehicles.findById(body.getVehicleId()).orElse(null);
+      if (v == null || !uid.equals(v.getCustomerUserId())) {
+        return ResponseEntity.status(403).body("{\"error\":\"Vehicle not owned by user\"}");
+      }
+      // populate denormalized fields (optional)
+      body.setVehicleMake(v.getMake());
+      body.setVehicleModel(v.getModel());
+      body.setVehiclePlateNo(v.getPlateNo());
     }
 
-    @GetMapping
-    public List<HistoryItem> history(Authentication auth, HttpServletRequest req) {
-        String uid = userId(auth, req);
-        return historyRepo.findByCustomerUserIdOrderByCompletedAtDesc(uid);
-    }
-
-    @PostMapping
-    public HistoryItem add(Authentication auth, HttpServletRequest req, @RequestBody @Valid HistoryItem item) {
-        String uid = userId(auth, req);
-        item.setId(null);
-        item.setCustomerUserId(uid);
-        return historyRepo.save(item);
-    }
+    HistoryItem saved = history.save(body);
+    return ResponseEntity.created(URI.create("/api/history/" + saved.getId())).body(saved);
+  }
 }

@@ -1,39 +1,40 @@
 package com.revamp.customer.web;
 
 import com.revamp.customer.model.Customer;
-import com.revamp.customer.repo.CustomerRepo;
+import com.revamp.customer.repo.CustomerRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
 public class CustomerController {
-  private final CustomerRepo customers;
 
-  private String userId(Authentication auth) {
-    return (auth != null && auth.getPrincipal() != null) ? String.valueOf(auth.getPrincipal()) : null;
-  }
+  private final CustomerRepository customers;
 
   @GetMapping("/me")
-  public ResponseEntity<Customer> me(Authentication auth) {
-    String uid = userId(auth);
+  public ResponseEntity<?> me() {
+    String uid = CurrentUser.userId();
+    if (uid == null) return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
+
     return customers.findByUserId(uid)
-      .map(ResponseEntity::ok)
-      .orElse(ResponseEntity.notFound().build());
+        .<ResponseEntity<?>>map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.status(404).body("{\"error\":\"Not Found\"}"));
   }
 
   @PutMapping("/me")
-  public Customer updateMe(Authentication auth, @RequestBody @Valid Customer body) {
-    String uid = userId(auth);
-    Customer c = customers.findByUserId(uid)
-      .orElse(new Customer(null, uid, null, body.getEmail(), null));
-    if (body.getName()!=null)  c.setName(body.getName());
-    if (body.getPhone()!=null) c.setPhone(body.getPhone());
-    if (body.getEmail()!=null) c.setEmail(body.getEmail());
-    return customers.save(c);
+  public ResponseEntity<?> upsert(@Valid @RequestBody Customer body) {
+    String uid = CurrentUser.userId();
+    if (uid == null) return ResponseEntity.status(401).body("{\"error\":\"Unauthorized\"}");
+
+    Customer c = customers.findByUserId(uid).orElseGet(Customer::new);
+    c.setUserId(uid);
+    if (body.getName()  != null) c.setName(body.getName());
+    if (body.getEmail() != null) c.setEmail(body.getEmail());
+    if (body.getPhone() != null) c.setPhone(body.getPhone());
+
+    return ResponseEntity.ok(customers.save(c));
   }
 }

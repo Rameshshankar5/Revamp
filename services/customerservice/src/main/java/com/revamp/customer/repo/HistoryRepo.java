@@ -6,5 +6,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
 public interface HistoryRepo extends MongoRepository<HistoryItem, String> {
-    List<HistoryItem> findByCustomerUserIdOrderByCompletedAtDesc(String customerUserId);
+  List<HistoryItem> findByCustomerUserId(String customerUserId);
 }

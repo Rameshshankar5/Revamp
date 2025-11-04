@@ -1,6 +1,6 @@
 "use client";
 import SidebarLayout from "@/components/SidebarLayout";
-import { api } from "@/lib/api";
+import { authApi, customerApi } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 type Customer = { userId?: string; name?: string; email?: string; phone?: string };
@@ -9,7 +9,7 @@ export default function ProfilePage() {
   const [me, setMe] = useState<Customer | null>(null);
 
   useEffect(() => {
-    (async () => setMe(await api("/api/customer/customers/me").catch(() => null)))();
+    (async () => setMe(await customerApi("/api/customers/me").catch(() => null)))();
   }, []);
 
   return (

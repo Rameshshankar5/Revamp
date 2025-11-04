@@ -1,13 +1,13 @@
 "use client";
 import SidebarLayout from "@/components/SidebarLayout";
-import { api } from "@/lib/api";
+import { authApi, customerApi } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 type Vehicle = { id?: string; make?: string; model?: string; plateNo?: string; year?: number };
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  useEffect(() => { (async () => setVehicles(await api("/api/customer/vehicles")))(); }, []);
+  useEffect(() => { (async () => setVehicles(await customerApi("/api/vehicles")))(); }, []);
 
   return (
     <SidebarLayout>

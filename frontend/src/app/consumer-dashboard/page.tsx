@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import SidebarLayout from "@/components/SidebarLayout";
-import { api } from "@/lib/api";
+import { authApi, customerApi } from "@/lib/api";
 import { decodeToken } from "@/utils/jwt";
 
 type Customer = { id?: string; userId?: string; name?: string; email?: string; phone?: string };
@@ -101,11 +101,11 @@ export default function CustomerDashboard() {
 
     (async () => {
       try {
-        const mePromise = api("/api/customer/customers/me").catch(() => null);
+        const mePromise = customerApi("/api/customers/me").catch(() => null);
         const [meRes, vRes, hRes] = await Promise.all([
           mePromise,
-          api("/api/customer/vehicles"),
-          api("/api/customer/history"),
+          customerApi("/api/vehicles"),
+          customerApi("/api/history"),
         ]);
 
         setMe(meRes ?? null);

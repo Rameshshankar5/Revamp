@@ -15,7 +15,7 @@ export const PALETTE = {
 type Item = { href: string; label: string; emoji: string };
 
 const items: Item[] = [
-  { href: "/customer-dashboard", label: "Home",        emoji: "🏠" },
+  { href: "/consumer-dashboard", label: "Home",        emoji: "🏠" },
   { href: "/customer-history",   label: "History",     emoji: "🕘" },
   { href: "/customer-profile",   label: "My Profile",  emoji: "👤" },
   { href: "/customer-vehicles",  label: "My Vehicles", emoji: "🚗" },

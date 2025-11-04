@@ -1,6 +1,6 @@
 "use client";
 import SidebarLayout from "@/components/SidebarLayout";
-import { api } from "@/lib/api";
+import { authApi, customerApi } from "@/lib/api";
 import { useEffect, useState } from "react";
 
 type Item = { id?: string; title: string; status: string; completedAt?: string; cost?: number;
@@ -11,7 +11,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     (async () => {
-      const h = await api("/api/customer/history");
+      const h = await customerApi("/api/history");
       const list = Array.isArray(h) ? h : [];
       list.sort((a: Item, b: Item) => (b.completedAt || "").localeCompare(a.completedAt || ""));
       setRows(list);
