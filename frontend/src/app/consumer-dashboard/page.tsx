@@ -14,50 +14,234 @@ type HistoryItem = {
   vehicle?: { plateNo?: string; make?: string; model?: string };
 };
 
-// ------- palette
+// ------- Updated Color Palette from your image
 const PALETTE = {
-  ink: "#0A0A0B",
+  primary: "#0A0A0B",
   cyan: "#00F9FF",
-  mint: "#3DDC97",
-  red: "#E63946",
-  sky: "#4CC9F0",
-  blue: "#3E92CC",
+  success: "#3DDC97",
+  danger: "#E63946",
+  info: "#4CC9F0",
+  secondary: "#3E92CC",
+  background: "#FFFFFF",
+  surface: "#F8FAFC",
+  accent: "#6366F1",
+  lightCyan: "#E6FFFF",
+  lightBlue: "#E6F7FF",
+  lightGreen: "#E8F8F2",
+  lightRed: "#FFEBEE",
+  lightPurple: "#F3F4FF",
 };
 
+// helpers to make vivid, correct alpha colors
+function hexToRgb(hex: string) {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map(c => c + c).join("") : h;
+  const n = parseInt(full, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255] as const;
+}
+function rgba(hex: string, a: number) {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+// ---------- KPI Card: vivid brand color + glass sheen (much stronger)
+function StatCard({
+  title,
+  value,
+  hint,
+  emoji,
+  color,
+  delay = 0,
+}: {
+  title: string;
+  value: string;
+  hint?: string;
+  emoji?: string;
+  color: string;
+  delay?: number;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-500 hover:scale-105 group relative overflow-hidden border"
+      style={{
+        animationDelay: `${delay}ms`,
+        background: `
+          linear-gradient(145deg, ${rgba(color, 0.96)} 0%, ${rgba(color, 0.82)} 100%),
+          linear-gradient(180deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,.08) 100%)
+        `,
+        color: "#FFFFFF",
+        borderColor: "rgba(255,255,255,0.45)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        boxShadow: `0 12px 28px ${rgba(color, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.32)`,
+      }}
+    >
+      {/* soft center glow on hover */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: `radial-gradient(600px 200px at 80% -20%, rgba(255,255,255,.22), transparent)` }}
+      />
+      {/* diagonal shine sweep */}
+      <div className="absolute top-0 -left-1/2 w-1/2 h-full -skew-x-12 bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:left-[150%] transition-all duration-1000" />
+
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-sm font-semibold text-white/95">{title}</span>
+          {emoji && <span className="text-2xl transform group-hover:scale-110 transition-transform duration-300">{emoji}</span>}
+        </div>
+        <div className="text-4xl font-extrabold mb-2 transform group-hover:scale-105 transition-transform duration-300">
+          {value}
+        </div>
+        {hint && (
+          <div className="text-xs text-white/95 bg-white/15 rounded-lg px-2 py-1 inline-block border border-white/25">
+            {hint}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------- StatusBadge (unchanged)
 function StatusBadge({ status }: { status: string }) {
-  const m: Record<string, { bg: string; text: string; ring: string }> = {
-    OPEN:        { bg: "bg-[#3E92CC]/15", text: "text-[#3E92CC]", ring: "ring-[#3E92CC]/30" },
-    IN_PROGRESS: { bg: "bg-[#4CC9F0]/15", text: "text-[#4CC9F0]", ring: "ring-[#4CC9F0]/30" },
-    DONE:        { bg: "bg-[#3DDC97]/15", text: "text-[#3DDC97]", ring: "ring-[#3DDC97]/30" },
-    CANCELLED:   { bg: "bg-[#E63946]/15", text: "text-[#E63946]", ring: "ring-[#E63946]/30" },
+  const m: Record<string, { bg: string; text: string; glow: string }> = {
+    OPEN: { bg: PALETTE.secondary, text: "white", glow: `${PALETTE.secondary}60` },
+    IN_PROGRESS: { bg: PALETTE.info, text: "white", glow: `${PALETTE.info}60` },
+    DONE: { bg: PALETTE.success, text: "white", glow: `${PALETTE.success}60` },
+    CANCELLED: { bg: PALETTE.danger, text: "white", glow: `${PALETTE.danger}60` },
   };
   const s = m[status] ?? m.OPEN;
+
   return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ${s.bg} ${s.text} ${s.ring}`}>
-      <span className="h-1.5 w-1.5 rounded-full" />
+    <span
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold shadow-lg hover:scale-105 transition-all duration-300"
+      style={{ backgroundColor: s.bg, color: s.text, boxShadow: `0 4px 20px 0 ${s.glow}` }}
+    >
+      <span className="h-2 w-2 rounded-full bg-white/90" />
       {status.replace("_", " ")}
     </span>
   );
 }
 
-function StatCard({ title, value, hint, emoji }: { title: string; value: string; hint?: string; emoji?: string }) {
+// ---------- Vehicle Card
+function VehicleCard({ vehicle, index }: { vehicle: Vehicle; index: number }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-      <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-500">{title}</span>
-        <span className="text-xl">{emoji}</span>
+    <div
+      className="rounded-2xl p-6 hover:scale-102 transition-all duration-500 hover:shadow-xl group cursor-pointer border border-blue-200 bg-white"
+      style={{
+        animationDelay: `${index * 100}ms`,
+        background: `linear-gradient(135deg, ${PALETTE.lightBlue} 0%, ${PALETTE.lightCyan}80 100%)`,
+      }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-3">
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm transform group-hover:rotate-12 transition-transform duration-300 shadow-lg"
+              style={{
+                background: `linear-gradient(135deg, ${PALETTE.secondary}, ${PALETTE.info})`,
+                boxShadow: `0 4px 20px 0 ${PALETTE.secondary}60`,
+              }}
+            >
+              🚗
+            </div>
+            <div>
+              <div className="font-bold text-gray-900 text-lg group-hover:text-blue-700 transition-colors duration-300">
+                {vehicle.make} {vehicle.model}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">{vehicle.year || "Year not specified"}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span
+              className="px-3 py-2 rounded-lg font-semibold text-sm border border-cyan-300 shadow-sm flex items-center gap-2"
+              style={{ backgroundColor: PALETTE.lightCyan, color: PALETTE.cyan }}
+            >
+              <span>📋</span>
+              {vehicle.plateNo ?? "No plate"}
+            </span>
+          </div>
+        </div>
       </div>
-      <div className="mt-1 text-2xl font-bold text-gray-900">{value}</div>
-      {hint ? <div className="mt-1 text-xs text-gray-500">{hint}</div> : null}
+
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-blue-200">
+        <span className="text-xs text-gray-600 font-medium">Vehicle Status</span>
+        <span className="text-xs px-2 py-1 rounded-full bg-white/80 text-gray-700 font-semibold">Active</span>
+      </div>
     </div>
   );
 }
 
-function Row({ label, value, mono = false }: { label: string; value?: string | null; mono?: boolean }) {
+// ---------- History Card
+function HistoryCard({ history }: { history: HistoryItem }) {
   return (
-    <div className="flex items-start justify-between gap-3">
-      <span className="text-gray-500">{label}</span>
-      <span className={`text-gray-900 ${mono ? "font-mono text-xs break-all" : ""}`}>{value ?? "—"}</span>
+    <div
+      className="rounded-2xl p-6 hover:scale-102 transition-all duration-500 hover:shadow-xl group border border-green-200 bg-white"
+      style={{ background: `linear-gradient(135deg, ${PALETTE.lightGreen} 0%, ${PALETTE.lightCyan}80 100%)` }}
+    >
+      <div className="flex items-center gap-4 mb-6">
+        <div
+          className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg transform group-hover:rotate-12 transition-transform duration-300 shadow-lg"
+          style={{ background: `linear-gradient(135deg, ${PALETTE.success}, ${PALETTE.cyan})`, boxShadow: `0 4px 20px 0 ${PALETTE.success}60` }}
+        >
+          🔧
+        </div>
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-gray-900">Latest Service</h3>
+          <p className="text-sm text-gray-600 mt-1">Most recent service record</p>
+        </div>
+        <StatusBadge status={history.status} />
+      </div>
+
+      <div className="space-y-4">
+        <div className="bg-white/80 rounded-xl p-4 border border-green-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold flex items-center gap-2" style={{ color: PALETTE.secondary }}>
+              <span>🛠️</span>
+              Service
+            </span>
+            <span className="font-bold text-gray-900 text-right text-sm">{history.title}</span>
+          </div>
+        </div>
+
+        <div className="bg-white/80 rounded-xl p-4 border border-green-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold flex items-center gap-2" style={{ color: PALETTE.secondary }}>
+              <span>🚙</span>
+              Vehicle
+            </span>
+            <span className="font-bold text-gray-900 text-right text-sm">
+              {history.vehicle?.make} {history.vehicle?.model}
+              {history.vehicle?.plateNo && ` • ${history.vehicle.plateNo}`}
+            </span>
+          </div>
+        </div>
+
+        {history.completedAt && (
+          <div className="bg-white/80 rounded-xl p-4 border border-green-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold flex items-center gap-2" style={{ color: PALETTE.secondary }}>
+                <span>📅</span>
+                Date
+              </span>
+              <span className="font-bold text-gray-900 text-sm">{new Date(history.completedAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        )}
+
+        {typeof history.cost === "number" && (
+          <div className="bg-gradient-to-r from-green-100 to-cyan-100 rounded-xl p-4 border border-green-200 shadow-sm mt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold flex items-center gap-2" style={{ color: PALETTE.cyan }}>
+                <span>💰</span>
+                Total Cost
+              </span>
+              <span className="text-xl font-bold text-gray-900">Rs. {history.cost.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -68,19 +252,9 @@ function greetNow() {
   if (h < 17) return "Afternoon";
   return "Evening";
 }
-function formatLKR(n: number) {
-  try {
-    return n
-      .toLocaleString("en-LK", { style: "currency", currency: "LKR", maximumFractionDigits: 0 })
-      .replace("LKR", "Rs.");
-  } catch {
-    return `Rs. ${Math.round(n).toLocaleString()}`;
-  }
-}
 
 export default function CustomerDashboard() {
   const [user, setUser] = useState<{ username?: string; email?: string } | null>(null);
-  const [me, setMe] = useState<Customer | null>(null);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [recent, setRecent] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,30 +263,23 @@ export default function CustomerDashboard() {
   const stats = useMemo(() => {
     const active = recent.filter((r) => r.status !== "DONE" && r.status !== "CANCELLED").length;
     const completed = recent.filter((r) => r.status === "DONE").length;
-    const totalCost = recent.reduce((s, r) => s + (typeof r.cost === "number" ? r.cost : 0), 0);
-    return { active, completed, totalCost };
+    return { active, completed };
   }, [recent]);
+
+  const latestHistory = recent[0];
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return;
     const decoded: any = decodeToken(token);
     setUser({ username: decoded?.username, email: decoded?.email });
-
     (async () => {
       try {
-        const mePromise = customerApi("/api/customers/me").catch(() => null);
-        const [meRes, vRes, hRes] = await Promise.all([
-          mePromise,
-          customerApi("/api/vehicles"),
-          customerApi("/api/history"),
-        ]);
-
-        setMe(meRes ?? null);
+        const [vRes, hRes] = await Promise.all([customerApi("/api/vehicles"), customerApi("/api/history")]);
         setVehicles(Array.isArray(vRes) ? vRes : []);
         const hist = Array.isArray(hRes) ? hRes : [];
         hist.sort((a, b) => (b.completedAt || "").localeCompare(a.completedAt || ""));
-        setRecent(hist.slice(0, 8));
+        setRecent(hist.slice(0, 1));
       } catch (e: any) {
         setErr(e?.message ?? "Failed to load");
       } finally {
@@ -121,126 +288,152 @@ export default function CustomerDashboard() {
     })();
   }, []);
 
-  if (loading) return <SidebarLayout><div className="min-h-[50vh] grid place-items-center text-gray-600">Loading…</div></SidebarLayout>;
-  if (err)      return <SidebarLayout><div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{err}</div></SidebarLayout>;
+  if (loading)
+    return (
+      <SidebarLayout>
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-6" style={{ borderColor: PALETTE.cyan, borderTopColor: "transparent" }} />
+            <div className="text-gray-700 text-lg font-semibold">Loading your dashboard...</div>
+            <div className="text-cyan-600 text-sm mt-2">Preparing something amazing</div>
+          </div>
+        </div>
+      </SidebarLayout>
+    );
+
+  if (err)
+    return (
+      <SidebarLayout>
+        <div
+          className="rounded-2xl p-6 border border-red-300"
+          style={{ background: `linear-gradient(135deg, ${PALETTE.lightRed} 0%, #FFEBEE 100%)` }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl text-white" style={{ backgroundColor: PALETTE.danger }}>
+              ⚠️
+            </div>
+            <div>
+              <div className="font-bold text-gray-900 text-lg">Error loading data</div>
+              <div className="text-red-600 text-sm mt-1">{err}</div>
+            </div>
+          </div>
+        </div>
+      </SidebarLayout>
+    );
 
   return (
     <SidebarLayout>
-      {/* welcome bar under header */}
-      <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200 mb-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <div className="text-sm text-gray-500">{user?.email ?? ""}</div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              {`Good ${greetNow()}, ${user?.username ?? "Customer"}!`}
-            </h2>
-            <p className="text-gray-600">Here’s your work overview for today.</p>
+      <div className="min-h-screen bg-white p-6">
+        {/* Header */}
+        <div
+          className="rounded-2xl p-8 mb-8 hover:shadow-xl transition-all duration-500 border border-cyan-300"
+          style={{ background: `linear-gradient(135deg, ${PALETTE.lightBlue} 0%, ${PALETTE.lightCyan} 100%)` }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-cyan-700 text-sm font-semibold mb-2 tracking-wider">{user?.email ?? ""}</div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-3">{`Good ${greetNow()}, ${user?.username ?? "Customer"}!`}</h2>
+              <p className="text-gray-700 text-lg">Welcome to your premium vehicle service dashboard</p>
+            </div>
+            <div
+              className="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl transform hover:rotate-12 transition-transform duration-500 shadow-lg text-white"
+              style={{ background: `linear-gradient(135deg, ${PALETTE.cyan}, ${PALETTE.info})`, boxShadow: `0 8px 32px 0 ${PALETTE.cyan}60` }}
+            >
+              👋
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard title="Active Jobs" value={String(stats.active)} hint="Open or in-progress" emoji="🛠️" />
-        <StatCard title="Completed"  value={String(stats.completed)} hint="All-time shown"      emoji="✅" />
-        <StatCard title="Recent Cost" value={formatLKR(stats.totalCost)} hint="Sum of recent items" emoji="💳" />
-      </div>
+        {/* KPI Cards — now rich, on-brand */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <StatCard title="Active Jobs" value={String(stats.active)} hint="Currently in progress" emoji="🛠️" color={PALETTE.secondary} delay={0} />
+          <StatCard title="Completed" value={String(stats.completed)} hint="Successfully done" emoji="✅" color={PALETTE.success} delay={200} />
+          <StatCard title="Total Vehicles" value={String(vehicles.length)} hint="Registered vehicles" emoji="🚗" color={PALETTE.info} delay={400} />
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile card */}
-        <section className="lg:col-span-1">
-          <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">My Profile</h3>
-              {me && (
-                <span className="rounded-full bg-white text-[#3E92CC] ring-1 ring-[#3E92CC]/30 px-2.5 py-1 text-xs font-medium">
-                  Customer
+        {/* Content */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          <section className="xl:col-span-2">
+            <div
+              className="rounded-2xl p-6 hover:shadow-xl transition-all duration-500 border border-blue-300 h-full"
+              style={{ background: `linear-gradient(135deg, ${PALETTE.lightBlue} 0%, ${PALETTE.lightCyan}80 100%)` }}
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                    style={{ background: `linear-gradient(135deg, ${PALETTE.secondary}, ${PALETTE.info})`, boxShadow: `0 4px 20px 0 ${PALETTE.secondary}60` }}
+                  >
+                    🚗
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">My Vehicles</h3>
+                    <p className="text-gray-600 text-sm mt-1">Manage your registered vehicles</p>
+                  </div>
+                </div>
+                <span
+                  className="text-sm font-bold text-white px-4 py-2 rounded-full shadow-lg"
+                  style={{ background: `linear-gradient(135deg, ${PALETTE.secondary}, ${PALETTE.info})`, boxShadow: `0 4px 20px 0 ${PALETTE.secondary}60` }}
+                >
+                  {vehicles.length} vehicles
                 </span>
+              </div>
+
+              {vehicles.length === 0 ? (
+                <div
+                  className="rounded-2xl border-2 border-dashed border-cyan-300 p-12 text-center text-gray-600 hover:border-cyan-500 transition-all duration-500"
+                  style={{ background: `linear-gradient(135deg, ${PALETTE.lightCyan}50, ${PALETTE.lightBlue}50)` }}
+                >
+                  <div className="text-5xl mb-4">🚗</div>
+                  <div className="font-bold text-gray-700 text-xl mb-2">No vehicles found</div>
+                  <div className="text-gray-600">Add your first vehicle to get started</div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[600px] overflow-y-auto pr-2">
+                  {vehicles.map((v, index) => (
+                    <VehicleCard key={v.id} vehicle={v} index={index} />
+                  ))}
+                </div>
               )}
             </div>
-            {me ? (
-              <div className="mt-4 space-y-2 text-sm">
-                <Row label="Name" value={me.name} />
-                <Row label="Email" value={me.email} />
-                <Row label="Phone" value={me.phone} />
-                <Row label="User ID" value={me.userId} mono />
+          </section>
+
+          <section className="xl:col-span-1">
+            <div
+              className="rounded-2xl p-6 hover:shadow-xl transition-all duration-500 border border-green-300 h-full"
+              style={{ background: `linear-gradient(135deg, ${PALETTE.lightGreen} 0%, ${PALETTE.lightCyan}80 100%)` }}
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                    style={{ background: `linear-gradient(135deg, ${PALETTE.success}, ${PALETTE.cyan})`, boxShadow: `0 4px 20px 0 ${PALETTE.success}60` }}
+                  >
+                    🔧
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Recent Service</h3>
+                    <p className="text-gray-600 text-sm mt-1">Latest service record</p>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <p className="mt-4 text-gray-600">No profile found.</p>
-            )}
-          </div>
-        </section>
 
-        {/* Vehicles */}
-        <section className="lg:col-span-2">
-          <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">My Vehicles</h3>
+              {latestHistory ? (
+                <HistoryCard history={latestHistory} />
+              ) : (
+                <div
+                  className="rounded-2xl border-2 border-dashed border-green-300 p-8 text-center text-gray-600 hover:border-green-500 transition-all duration-500"
+                  style={{ background: `linear-gradient(135deg, ${PALETTE.lightGreen}50, ${PALETTE.lightCyan}50)` }}
+                >
+                  <div className="text-4xl mb-4">🔧</div>
+                  <div className="font-bold text-gray-700 text-lg mb-2">No service history</div>
+                  <div className="text-gray-600 text-sm">Your service records will appear here</div>
+                </div>
+              )}
             </div>
-
-            {vehicles.length === 0 ? (
-              <div className="mt-6 rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-600">
-                No vehicles found.
-              </div>
-            ) : (
-              <ul className="mt-4 grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {vehicles.map((v) => (
-                  <li key={v.id} className="rounded-lg border border-gray-200 p-4 hover:shadow-sm">
-                    <div className="flex items-start justify-between">
-                      <div className="font-semibold text-gray-900">{v.make} {v.model}</div>
-                      <span className="text-xs px-2 py-0.5 rounded-full ring-1 ring-gray-200 bg-gray-50">{v.year ?? "—"}</span>
-                    </div>
-                    <div className="mt-1 text-sm text-gray-600">{v.plateNo ?? "—"}</div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-      </div>
-
-      {/* Recent history */}
-      <section className="mt-6">
-        <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-          <h3 className="text-lg font-semibold mb-4">Recent Service History</h3>
-
-          {recent.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-600">
-              No history yet.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-[900px] w-full">
-                <thead>
-                  <tr className="text-left text-sm font-semibold" style={{ background: PALETTE.ink, color: "white" }}>
-                    <th className="p-3">Completed</th>
-                    <th className="p-3">Title</th>
-                    <th className="p-3">Vehicle</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3 text-right">Cost (LKR)</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {recent.map((h, i) => (
-                    <tr key={h.id ?? i} className="border-t last:border-b" style={{ borderColor: "#EEF2F7" }}>
-                      <td className="p-3 text-gray-600">{h.completedAt ? new Date(h.completedAt).toLocaleString() : "—"}</td>
-                      <td className="p-3 font-medium text-gray-800">{h.title}</td>
-                      <td className="p-3 text-gray-700">
-                        {h.vehicle?.make} {h.vehicle?.model}
-                        {h.vehicle?.plateNo ? <span className="text-gray-500"> • {h.vehicle?.plateNo}</span> : ""}
-                      </td>
-                      <td className="p-3"><StatusBadge status={h.status} /></td>
-                      <td className="p-3 text-right font-semibold" style={{ color: PALETTE.ink }}>
-                        {typeof h.cost === "number" ? h.cost.toLocaleString() : "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          </section>
         </div>
-      </section>
+      </div>
     </SidebarLayout>
   );
 }
