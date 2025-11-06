@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 // Routes
 const authRoutes = require("./routes/authRoutes");
 const customerRoutes = require("./routes/customerRoutes");
+const employeeRoutes = require("./routes/employeeRoutes");
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use(bodyParser.json());
 /* ===== Mount routes ===== */
 app.use("/api/auth", authRoutes);
 app.use("/api/customer", customerRoutes);
+app.use("/api/auth", employeeRoutes);
 
 /* ===== Start server ===== */
 const PORT = process.env.PORT || 4000;
